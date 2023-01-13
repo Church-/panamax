@@ -5,10 +5,21 @@
 
   outputs = { self, nixpkgs }: {
     nixosModules."panamax" = { config, lib, pkgs, ... }:
+      with lib;
       let cfg = config.services.panamax;
       in {
         options = {
-          services.panamax = { enable = lib.mkEnableOption "panamax"; };
+          services.panamax = {
+            enable = lib.mkEnableOption "panamax";
+            path = mkOption {
+              type = types.str;
+              default = "world";
+            };
+            port = mkOption {
+              type = types.int;
+              default = 8080;
+            };
+          };
         };
 
         config = lib.mkIf cfg.enable {
@@ -16,7 +27,9 @@
             wantedBy = [ "multi-user.target" ];
             after = [ "network.target" ];
             script = ''
-              ${pkgs.panamax}/bin/panamax serve
+              ${pkgs.panamax}/bin/panamax serve -p ${
+                toString cfg.port
+              } ${cfg.path}
             '';
             serviceConfig = {
               Type = "simple";
@@ -30,7 +43,7 @@
             wantedBy = [ "multi-user.target" ];
             after = [ "network.target" ];
             script = ''
-              ${pkgs.panamax}/bin/panamax sync crates-mirror
+              ${pkgs.panamax}/bin/panamax sync ${cfg.path}
             '';
             serviceConfig = {
               Type = "simple";
